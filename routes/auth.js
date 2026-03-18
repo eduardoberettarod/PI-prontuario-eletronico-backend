@@ -10,6 +10,8 @@ const bcrypt = require('bcrypt')
 
 router.post("/login", function (req, res) {
 
+    console.log(req.body)
+
     const { email, senha } = req.body
 
     db.query(
