@@ -1,25 +1,23 @@
 const express = require('express')
 const router = express.Router()
 const autorizar = require('../middlewares/autorizar')
-
 const db = require('../conexao')
 
 //======================================
-//         USUARIOS - [ GET ]
+//         SETORES - [ GET ]
 //======================================
 
 router.get(
     "/",
-    autorizar("aluno", "docente", "admin"),
+    autorizar("docente", "admin"),
     function (req, res) {
 
         db.query(
-            `SELECT id,
-         primeiro_nome,
-         sobrenome,
-         email
-         FROM usuarios
-         WHERE nivel_acesso = 'aluno'`,
+            `SELECT 
+        id,
+        nome_setor,
+        id_usuario
+        FROM setores`,
             function (erro, resultado) {
 
                 if (erro) {
@@ -30,20 +28,26 @@ router.get(
                 res.json(resultado)
             }
         )
-
     })
 
 //======================================
-//         USUARIOS - [DELETE]
+//         SETORES - [ POST ]
 //======================================
 
-router.delete(
-    "/alunos",
-    autorizar("admin", "docente"),
+router.post(
+    "/",
+    autorizar("docente", "admin"),
     function (req, res) {
 
+        const { nome_setor } = req.body
+
+
         db.query(
-            "DELETE FROM usuarios WHERE nivel_acesso = 'aluno'",
+            `INSERT INTO setores
+        (nome_setor)
+        VALUES (?)`,
+            [nome_setor],
+
             function (erro, resultado) {
 
                 if (erro) {
@@ -51,19 +55,16 @@ router.delete(
                     return res.status(500).json(erro)
                 }
 
-                res.json({
-                    mensagem: "Todos os alunos foram deletados",
-                    deletados: resultado.affectedRows
+                res.status(201).json({
+                    mensagem: "Setor cadastrado com sucesso",
+                    id: resultado.insertId
                 })
-
             }
         )
-
-    }
-)
+    })
 
 //======================================
-//       USUARIOS - [ DELETE:ID ]
+//         SETORES - [ DELETE:id ]
 //======================================
 
 router.delete(
@@ -74,7 +75,7 @@ router.delete(
         const { id } = req.params
 
         db.query(
-            "DELETE FROM usuarios WHERE id = ?",
+            "DELETE FROM setores WHERE id = ?",
             [id],
             function (erro, resultado) {
 
@@ -85,12 +86,12 @@ router.delete(
 
                 if (resultado.affectedRows === 0) {
                     return res.status(404).json({
-                        erro: "Usuário não encontrado"
+                        erro: "Setor não encontrado"
                     })
                 }
 
                 res.json({
-                    mensagem: "Usuário deletado com sucesso"
+                    mensagem: "Setor deletado com sucesso"
                 })
 
             }

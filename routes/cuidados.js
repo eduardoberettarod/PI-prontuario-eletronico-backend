@@ -1,25 +1,23 @@
 const express = require('express')
 const router = express.Router()
 const autorizar = require('../middlewares/autorizar')
-
 const db = require('../conexao')
 
 //======================================
-//         USUARIOS - [ GET ]
+//         CUIDADOS - [ GET ]
 //======================================
 
 router.get(
     "/",
-    autorizar("aluno", "docente", "admin"),
+    autorizar("docente", "admin"),
     function (req, res) {
 
         db.query(
-            `SELECT id,
-         primeiro_nome,
-         sobrenome,
-         email
-         FROM usuarios
-         WHERE nivel_acesso = 'aluno'`,
+            `SELECT 
+        id,
+        tipo_cuidado,
+        id_usuario
+        FROM cuidados`,
             function (erro, resultado) {
 
                 if (erro) {
@@ -30,40 +28,16 @@ router.get(
                 res.json(resultado)
             }
         )
-
     })
 
 //======================================
-//         USUARIOS - [DELETE]
+//         CUIDADOS - [ POST ]
 //======================================
 
-router.delete(
-    "/alunos",
-    autorizar("admin", "docente"),
-    function (req, res) {
 
-        db.query(
-            "DELETE FROM usuarios WHERE nivel_acesso = 'aluno'",
-            function (erro, resultado) {
-
-                if (erro) {
-                    console.log(erro)
-                    return res.status(500).json(erro)
-                }
-
-                res.json({
-                    mensagem: "Todos os alunos foram deletados",
-                    deletados: resultado.affectedRows
-                })
-
-            }
-        )
-
-    }
-)
 
 //======================================
-//       USUARIOS - [ DELETE:ID ]
+//         CUIDADOS - [ DELETE:id ]
 //======================================
 
 router.delete(
@@ -74,7 +48,7 @@ router.delete(
         const { id } = req.params
 
         db.query(
-            "DELETE FROM usuarios WHERE id = ?",
+            "DELETE FROM cuidados WHERE id = ?",
             [id],
             function (erro, resultado) {
 
@@ -85,12 +59,12 @@ router.delete(
 
                 if (resultado.affectedRows === 0) {
                     return res.status(404).json({
-                        erro: "Usuário não encontrado"
+                        erro: "Cuidado não encontrado"
                     })
                 }
 
                 res.json({
-                    mensagem: "Usuário deletado com sucesso"
+                    mensagem: "Cuidado deletado com sucesso"
                 })
 
             }
