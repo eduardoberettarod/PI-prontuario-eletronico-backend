@@ -15,8 +15,7 @@ router.get(
         db.query(
             `SELECT 
         id,
-        nome_setor,
-        id_usuario
+        nome_setor
         FROM setores`,
             function (erro, resultado) {
 

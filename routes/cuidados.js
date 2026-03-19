@@ -15,8 +15,7 @@ router.get(
         db.query(
             `SELECT 
         id,
-        tipo_cuidado,
-        id_usuario
+        tipo_cuidado
         FROM cuidados`,
             function (erro, resultado) {
 
@@ -34,7 +33,34 @@ router.get(
 //         CUIDADOS - [ POST ]
 //======================================
 
+router.post(
+    "/",
+    autorizar("admin", "docente"),
+    function (req, res) {
 
+        const { tipo_cuidado } = req.body
+
+
+        db.query(
+            `INSERT INTO cuidados
+        (tipo_cuidado)
+        VALUES (?)`,
+            [tipo_cuidado],
+
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                res.status(201).json({
+                    mensagem: "Cuidado cadastrado com sucesso",
+                    id: resultado.insertId
+                })
+            }
+        )
+    })
 
 //======================================
 //         CUIDADOS - [ DELETE:id ]
