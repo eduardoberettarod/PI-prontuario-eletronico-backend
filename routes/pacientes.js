@@ -4,19 +4,21 @@ const autorizar = require('../middlewares/autorizar')
 const db = require('../conexao')
 
 //======================================
-//         SETORES - [ GET ]
+//         PACIENTES - [ GET ]
 //======================================
 
 router.get(
     "/",
-    autorizar("docente", "admin"),
+    autorizar("docente", "admin", "aluno"),
     function (req, res) {
 
         db.query(
             `SELECT 
-        id,
-        nome_setor
-        FROM setores`,
+            pacientes.*,
+            setores.nome_setor
+            FROM pacientes
+            JOIN setores ON pacientes.id_setor = setores.id
+            ORDER BY pacientes.created_at DESC`,
             function (erro, resultado) {
 
                 if (erro) {
@@ -30,7 +32,7 @@ router.get(
     })
 
 //======================================
-//         SETORES - [ POST ]
+//         PACIENTES - [ POST ]
 //======================================
 
 router.post(
@@ -38,17 +40,33 @@ router.post(
     autorizar("docente", "admin"),
     function (req, res) {
 
-        const { nome_setor } = req.body
+        const { nome_paciente, mae_paciente, data_nasc, tipo_sanguineo, fator_rh,
+            equipe, status_paciente, convenio, quarto, leito, id_setor } = req.body
 
-        if (!nome_setor) {
-            return res.status(400).json({ erro: "Nome do setor é obrigatório" })
+        const tipo_sanguineoValidos = ['A', 'B', 'AB', 'O']
+        const fator_rhValidos = ['+', '-']
+
+        if (!tipo_sanguineoValidos.includes(tipo_sanguineo)) {
+            return res.status(400).json({
+                erro: "Tipo sanguíneo inválido"
+            })
+        }
+
+        if (!fator_rhValidos.includes(fator_rh)) {
+            return res.status(400).json({
+                erro: "Fator RH inválido"
+            })
         }
 
         db.query(
-            `INSERT INTO setores
-        (nome_setor)
-        VALUES (?)`,
-            [nome_setor],
+            `INSERT INTO pacientes (
+            nome_paciente, mae_paciente, data_nasc, tipo_sanguineo, fator_rh,
+            equipe, status_paciente, convenio, quarto, leito, id_setor
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+
+            [nome_paciente, mae_paciente, data_nasc, tipo_sanguineo, fator_rh,
+                equipe, status_paciente, convenio, quarto, leito, id_setor],
 
             function (erro, resultado) {
 
@@ -58,7 +76,7 @@ router.post(
                 }
 
                 res.status(201).json({
-                    mensagem: "Setor cadastrado com sucesso",
+                    mensagem: "Paciente cadastrado com sucesso",
                     id: resultado.insertId
                 })
             }
@@ -66,7 +84,7 @@ router.post(
     })
 
 //======================================
-//         SETORES - [ DELETE:id ]
+//         PACIENTES - [ DELETE:id ]
 //======================================
 
 router.delete(
@@ -77,7 +95,7 @@ router.delete(
         const { id } = req.params
 
         db.query(
-            "DELETE FROM setores WHERE id = ?",
+            "DELETE FROM pacientes WHERE id = ?",
             [id],
             function (erro, resultado) {
 
@@ -88,12 +106,12 @@ router.delete(
 
                 if (resultado.affectedRows === 0) {
                     return res.status(404).json({
-                        erro: "Setor não encontrado"
+                        erro: "Paciente não encontrado"
                     })
                 }
 
                 res.json({
-                    mensagem: "Setor deletado com sucesso"
+                    mensagem: "Paciente deletado com sucesso"
                 })
 
             }

@@ -71,4 +71,41 @@ router.get(
         )
     })
 
+//======================================
+//      MEDICAMENTOS - [ DELETE:id ]
+//======================================
+
+router.delete(
+    "/:id",
+    autorizar("admin", "docente"),
+    function (req, res) {
+
+        const { id } = req.params
+
+        db.query(
+            "DELETE FROM medicamentos WHERE id = ?",
+            [id],
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                if (resultado.affectedRows === 0) {
+                    return res.status(404).json({
+                        erro: "Medicamento não encontrado"
+                    })
+                }
+
+                res.json({
+                    mensagem: "Medicamento deletado com sucesso"
+                })
+
+            }
+        )
+
+    }
+)
+
 module.exports = router
