@@ -152,4 +152,79 @@ router.get(
     }
 )
 
+//======================================
+//         PACIENTES - [ PUT:id ]
+//======================================
+
+router.put(
+    "/:id",
+    autorizar("admin", "docente"),
+    function (req, res) {
+
+        const { id } = req.params;
+
+        const {
+            nome_paciente,
+            mae_paciente,
+            data_nasc,
+            tipo_sanguineo,
+            fator_rh,
+            equipe,
+            status_paciente,
+            convenio,
+            quarto,
+            leito,
+            id_setor
+        } = req.body;
+
+        db.query(
+            `UPDATE pacientes SET 
+                nome_paciente = ?, 
+                mae_paciente = ?, 
+                data_nasc = ?, 
+                tipo_sanguineo = ?, 
+                fator_rh = ?, 
+                equipe = ?, 
+                status_paciente = ?, 
+                convenio = ?, 
+                quarto = ?, 
+                leito = ?, 
+                id_setor = ?
+             WHERE id = ?`,
+            [
+                nome_paciente,
+                mae_paciente,
+                data_nasc,
+                tipo_sanguineo,
+                fator_rh,
+                equipe,
+                status_paciente,
+                convenio,
+                quarto,
+                leito,
+                id_setor,
+                id
+            ],
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro);
+                    return res.status(500).json(erro);
+                }
+
+                if (resultado.affectedRows === 0) {
+                    return res.status(404).json({
+                        erro: "Paciente não encontrado"
+                    });
+                }
+
+                res.json({
+                    mensagem: "Paciente atualizado com sucesso"
+                });
+
+            }
+        );
+    }
+);
+
 module.exports = router
