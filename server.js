@@ -73,8 +73,11 @@ app.use('/cuidados', cuidadosRoutes)
 const pacientesRoutes = require('./routes/pacientes')
 app.use('/pacientes', pacientesRoutes)
 
-const pacienteCuidados = require('./routes/pacienteCuidados')
-app.use('/paciente-cuidados', pacienteCuidados)
+const pacienteCuidadosRoutes = require('./routes/pacienteCuidados')
+app.use('/paciente-cuidados', pacienteCuidadosRoutes)
+
+const relatoriosRoutes = require('./routes/relatorios')
+app.use('/relatorios', relatoriosRoutes)
 
 //=============================
 //           TESTE
