@@ -120,4 +120,36 @@ router.delete(
     }
 )
 
+//======================================
+//         PACIENTES - [ GET:id ]
+//======================================
+
+router.get(
+    "/:id",
+    autorizar("docente", "admin", "aluno"),
+    function (req, res) {
+
+        const { id } = req.params;
+
+        db.query(
+            `SELECT 
+                pacientes.*,
+                setores.nome_setor
+             FROM pacientes
+             JOIN setores ON pacientes.id_setor = setores.id
+             WHERE pacientes.id = ?`,
+            [id],
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                res.json(resultado[0])
+            }
+        )
+    }
+)
+
 module.exports = router
