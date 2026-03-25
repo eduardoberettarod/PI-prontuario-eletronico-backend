@@ -47,25 +47,34 @@ const bodyParser = require('body-parser')
 app.use(bodyParser.urlencoded({ extended: true }))
 app.use(bodyParser.json())
 
+
 //=============================
 //           ROTAS
 //=============================
 
 const usuariosRoutes = require('./routes/usuarios')
-const medicamentosRoutes = require('./routes/medicamentos')
-const authRoutes = require('./routes/auth')
-const registroRoutes = require('./routes/registro')
-const setoresRoutes = require('./routes/setores')
-const cuidadosRoutes = require('./routes/cuidados')
-const pacientesRoutes = require('./routes/pacientes')
-
-app.use('/pacientes', pacientesRoutes)
-app.use('/setores', setoresRoutes)
-app.use('/cuidados', cuidadosRoutes)
-app.use('/registro', registroRoutes)
 app.use('/usuarios', usuariosRoutes)
+
+const medicamentosRoutes = require('./routes/medicamentos')
 app.use('/medicamentos', medicamentosRoutes)
+
+const authRoutes = require('./routes/auth')
 app.use('/auth', authRoutes)
+
+const registroRoutes = require('./routes/registro')
+app.use('/registro', registroRoutes)
+
+const setoresRoutes = require('./routes/setores')
+app.use('/setores', setoresRoutes)
+
+const cuidadosRoutes = require('./routes/cuidados')
+app.use('/cuidados', cuidadosRoutes)
+
+const pacientesRoutes = require('./routes/pacientes')
+app.use('/pacientes', pacientesRoutes)
+
+const pacienteCuidados = require('./routes/pacienteCuidados')
+app.use('/paciente-cuidados', pacienteCuidados)
 
 //=============================
 //           TESTE
