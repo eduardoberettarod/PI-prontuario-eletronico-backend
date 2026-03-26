@@ -9,9 +9,15 @@ const db = require('../conexao')
 
 router.get('/',
     autorizar("docente", "admin", "aluno"),
-    async (req, res) => {
-        try {
-            db.query(`
+    (req, res) => {
+
+        if (!req.session.usuario) {
+            return res.status(401).json({ erro: "Não autenticado" });
+        }
+
+        const usuario_id = req.session.usuario.id;
+
+        db.query(`
             SELECT 
                 r.id,
                 r.titulo,
@@ -19,21 +25,25 @@ router.get('/',
                 r.created_at,
                 p.nome_paciente,
                 p.id AS paciente_id,
-
                 u.primeiro_nome AS usuario_nome
-
             FROM relatorios r
             JOIN pacientes p ON r.paciente_id = p.id
             JOIN usuarios u ON r.usuario_id = u.id
+            WHERE r.usuario_id = ?
             ORDER BY r.created_at DESC
-            `, function (erro, resultados) {
-                res.json(resultados)
-            })
+        `,
+            [usuario_id],
+            function (erro, resultados) {
 
-        } catch (erro) {
-            console.error(erro);
-            res.status(erro)
-        }
+                if (erro) {
+                    console.error(erro);
+                    return res.status(500).json({
+                        erro: "Erro ao buscar relatórios"
+                    });
+                }
+
+                res.json(resultados);
+            });
     }
 );
 
