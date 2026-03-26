@@ -54,11 +54,12 @@ router.get(
     function (req, res) {
 
         db.query(
-            `SELECT 
-        nome_medicamento,
-        classe_terapeutica,
-        unidade
-        FROM medicamentos`,
+            `SELECT
+            id, 
+            nome_medicamento,
+            classe_terapeutica,
+            unidade
+            FROM medicamentos`,
             function (erro, resultado) {
 
                 if (erro) {
@@ -108,4 +109,52 @@ router.delete(
     }
 )
 
+//======================================
+//      MEDICAMENTOS - [ PUT:id ]
+//======================================
+
+router.put(
+    "/:id",
+    autorizar("admin", "docente"),
+    function (req, res) {
+
+        const { id } = req.params
+        const { nome_medicamento, classe_terapeutica, unidade } = req.body
+
+        const unidadesValidas = ['mg', 'g', 'mcg', 'ml', 'ui', '%']
+
+        if (!unidadesValidas.includes(unidade)) {
+            return res.status(400).json({
+                erro: "Unidade inválida"
+            })
+        }
+
+        db.query(
+            `UPDATE medicamentos 
+             SET nome_medicamento = ?, 
+                 classe_terapeutica = ?, 
+                 unidade = ?
+             WHERE id = ?`,
+            [nome_medicamento, classe_terapeutica, unidade, id],
+
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                if (resultado.affectedRows === 0) {
+                    return res.status(404).json({
+                        erro: "Medicamento não encontrado"
+                    })
+                }
+
+                res.json({
+                    mensagem: "Medicamento atualizado com sucesso"
+                })
+            }
+        )
+    }
+)
 module.exports = router
