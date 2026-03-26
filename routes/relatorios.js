@@ -141,4 +141,37 @@ router.put('/:id',
     }
 );
 
+//======================================
+//   RELATORIOS POR PACIENTE - [ GET ]
+//======================================
+
+router.get('/paciente/:id',
+    autorizar("docente", "admin"),
+    (req, res) => {
+
+        const { id } = req.params;
+
+        db.query(`
+            SELECT 
+                r.id,
+                r.titulo,
+                r.conteudo,
+                r.created_at,
+                u.primeiro_nome AS usuario_nome
+            FROM relatorios r
+            JOIN usuarios u ON r.usuario_id = u.id
+            WHERE r.paciente_id = ?
+            ORDER BY r.created_at DESC
+        `, [id], (erro, resultados) => {
+
+            if (erro) {
+                console.log(erro);
+                return res.status(500).json({ erro: "Erro ao buscar relatórios" });
+            }
+
+            res.json(resultados);
+        });
+    }
+);
+
 module.exports = router
