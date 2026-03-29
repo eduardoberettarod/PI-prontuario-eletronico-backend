@@ -33,6 +33,41 @@ router.get(
 
     })
 
+router.get(
+    "/me",
+    autorizar("aluno", "docente", "admin"),
+    function (req, res) {
+
+        console.log(req.usuario)
+
+        const usuarioId = req.usuario.id
+
+        db.query(
+            `SELECT 
+                id,
+                primeiro_nome,
+                sobrenome,
+                nivel_acesso
+             FROM usuarios
+             WHERE id = ?`,
+            [usuarioId],
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                if (resultado.length === 0) {
+                    return res.status(404).json({ erro: "Usuário não encontrado" })
+                }
+
+                res.json(resultado[0])
+            }
+        )
+    }
+)
+
 //======================================
 //         USUARIOS - [DELETE]
 //======================================

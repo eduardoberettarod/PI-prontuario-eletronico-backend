@@ -83,9 +83,12 @@ router.get(
                     }
 
                     if (item && row.horario_id) {
+                        // Serializa o DATETIME de forma segura (sem conversão de fuso).
+                        // O driver mysql pode retornar Date ou string dependendo da versão.
+                        // Sempre enviamos uma string "YYYY-MM-DD HH:MM:SS" ao frontend.
                         item.horarios.push({
                             id: row.horario_id,
-                            horario: row.horario,
+                            horario: formatarDateTimeParaResposta(row.horario),
                             status_id: row.status_id || 1
                         });
                     }
@@ -138,8 +141,8 @@ router.post(
         }
 
         // ========== VALIDAÇÕES DE ITENS ==========
-        // Nota: horarios NÃO são enviados pelo frontend.
-        // São gerados no backend com base em data_prescricao + frequencia (intervalo em horas).
+        // Horários NÃO são enviados pelo frontend —
+        // são gerados no backend com base em data_prescricao + frequência (intervalo em horas).
 
         for (let i = 0; i < itens.length; i++) {
             const item = itens[i];
@@ -222,8 +225,9 @@ router.post(
                         return res.status(400).json({ erro: "Um ou mais medicamentos não foram encontrados" });
                     }
 
-                    // Captura o momento exato no Node.js para usar tanto
-                    // no INSERT da prescrição quanto na geração dos horários
+                    // Captura o momento exato no Node.js —
+                    // este objeto Date é usado tanto no INSERT da prescrição
+                    // quanto como ponto de partida para a geração dos horários.
                     const dataPrescricao = new Date();
 
                     inserirPrescricaoComItensHorarios(
@@ -280,6 +284,62 @@ router.put(
 );
 
 //======================================
+//   PRESCRICOES - [ PUT ] (editar)
+//======================================
+
+router.put(
+    "/:id",
+    autorizar("aluno", "docente", "admin"),
+    function (req, res) {
+        const { id } = req.params;
+        const prescricao_id = parseInt(id);
+        const { observacao } = req.body;
+
+        if (!id || isNaN(prescricao_id) || prescricao_id <= 0) {
+            return res.status(400).json({ erro: "ID da prescrição inválido" });
+        }
+
+        if (observacao !== undefined && typeof observacao !== 'string') {
+            return res.status(400).json({ erro: "observacao deve ser uma string" });
+        }
+
+        if (observacao && observacao.length > 500) {
+            return res.status(400).json({ erro: "Observação muito longa (máx 500 caracteres)" });
+        }
+
+        // Verificar se a prescrição existe
+        db.query(
+            "SELECT id FROM prescricoes WHERE id = ?",
+            [prescricao_id],
+            function (erro, resultado) {
+                if (erro) {
+                    console.error("Erro ao buscar prescrição:", erro);
+                    return res.status(500).json({ erro: "Erro ao buscar prescrição" });
+                }
+
+                if (!resultado || resultado.length === 0) {
+                    return res.status(404).json({ erro: "Prescrição não encontrada" });
+                }
+
+                db.query(
+                    "UPDATE prescricoes SET observacao = ? WHERE id = ?",
+                    [observacao?.trim() || null, prescricao_id],
+                    function (erroUpdate) {
+                        if (erroUpdate) {
+                            console.error("Erro ao atualizar prescrição:", erroUpdate);
+                            return res.status(500).json({ erro: "Erro ao atualizar prescrição" });
+                        }
+
+                        console.log(`Prescrição ${prescricao_id} atualizada`);
+                        return res.json({ sucesso: true, mensagem: "Prescrição atualizada com sucesso" });
+                    }
+                );
+            }
+        );
+    }
+);
+
+//======================================
 //      PRESCRICOES - [ DELETE ]
 //======================================
 
@@ -294,7 +354,6 @@ router.delete(
             return res.status(400).json({ erro: "ID da prescrição inválido" });
         }
 
-        // 1. Verificar se a prescrição existe
         db.query(
             "SELECT id FROM prescricoes WHERE id = ?",
             [prescricao_id],
@@ -308,7 +367,6 @@ router.delete(
                     return res.status(404).json({ erro: "Prescrição não encontrada" });
                 }
 
-                // 2. Deletar itens_prescricao
                 // horarios_prescricao são removidos automaticamente via ON DELETE CASCADE
                 // (FK: horarios_prescricao_ibfk_1 → itens_prescricao ON DELETE CASCADE)
                 db.query(
@@ -320,9 +378,6 @@ router.delete(
                             return res.status(500).json({ erro: "Erro ao deletar itens da prescrição" });
                         }
 
-                        console.log(`Itens da prescrição ${prescricao_id} deletados`);
-
-                        // 3. Deletar a prescrição principal
                         db.query(
                             "DELETE FROM prescricoes WHERE id = ?",
                             [prescricao_id],
@@ -333,10 +388,7 @@ router.delete(
                                 }
 
                                 console.log(`Prescrição ${prescricao_id} deletada com sucesso`);
-                                return res.json({
-                                    sucesso: true,
-                                    mensagem: "Prescrição deletada com sucesso"
-                                });
+                                return res.json({ sucesso: true, mensagem: "Prescrição deletada com sucesso" });
                             }
                         );
                     }
@@ -398,56 +450,82 @@ function validarMedicamentosExistem(itens, callback) {
     });
 }
 
-// ─── Geração de horários (backend) ─────────────────────────────────────────
+// ─── Formatação de datetime para MySQL (usa horário LOCAL do servidor) ────────
+// Nunca usa toISOString() — esse método converte para UTC e quebraria o horário
+// em servidores fora de UTC-0.
+function formatarDateTimeMySQL(date) {
+    const y = date.getFullYear();
+    const mo = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    const h = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+    const s = String(date.getSeconds()).padStart(2, '0');
+    return `${y}-${mo}-${d} ${h}:${mi}:${s}`;
+}
+
+// ─── Serialização do DATETIME para o frontend ─────────────────────────────────
+// O driver mysql pode retornar DATETIME como Date ou string.
+// Sempre enviamos "YYYY-MM-DD HH:MM:SS" (sem fuso) para o frontend,
+// que exibe usando suas próprias funções de formatação.
+function formatarDateTimeParaResposta(dt) {
+    if (!dt) return null;
+    if (dt instanceof Date) return formatarDateTimeMySQL(dt);
+    return String(dt); // já é string
+}
+
+// ─── Geração de horários (backend) ────────────────────────────────────────────
 //
-// Regra:
-//   dataPrescricao = momento da criação (ex: 19:00)
-//   frequenciaHoras = intervalo em horas (ex: 4 → a cada 4h)
-//   1ª dose = dataPrescricao + frequenciaHoras (ex: 23:00)
-//   Ciclo completa 24 horas → último horário = dataPrescricao + 24h
+// Regra exata:
+//   dataPrescricao  = momento da criação (ex: 21:00:00 do dia 28/03)
+//   frequenciaHoras = intervalo em horas (ex: 1 = a cada 1h)
 //
-// Exemplos:
-//   Criado às 19:00, freq=1h → 20:00, 21:00, ..., 19:00 (24 doses)
-//   Criado às 19:00, freq=4h → 23:00, 03:00, 07:00, 11:00, 15:00, 19:00 (6 doses)
-//   Criado às 19:00, freq=6h → 01:00, 07:00, 13:00, 19:00 (4 doses)
+//   1ª dose  = dataPrescricao + 1 × frequenciaHoras  (ex: 22:00 dia 28)
+//   2ª dose  = dataPrescricao + 2 × frequenciaHoras  (ex: 23:00 dia 28)
+//   ...
+//   Última   = dataPrescricao + 24h exatos            (ex: 21:00 dia 29)
+//
+// Quantidade de doses = 24 / frequenciaHoras
+//   1/1h  → 24 doses
+//   2/2h  → 12 doses
+//   3/3h  →  8 doses
+//   4/4h  →  6 doses
+//   6/6h  →  4 doses
+//   8/8h  →  3 doses
+//  12/12h →  2 doses
+//  24/24h →  1 dose
+//
+// Para frequências que não dividem 24 exatamente (5, 7, etc.),
+// o loop inclui todas as doses dentro do intervalo [+freq, +24h].
+//
+// A virada de meia-noite é tratada automaticamente via aritmética de Date.
 
 function gerarHorariosParaItem(dataPrescricao, frequenciaHoras) {
     const horarios = [];
-    const seenHorarios = new Set();
 
-    const startMinutes = dataPrescricao.getHours() * 60 + dataPrescricao.getMinutes();
-    const intervalMinutes = frequenciaHoras * 60;
-    const limiteMinutes = 24 * 60; // 1440 min = 24h
+    const intervalMs = frequenciaHoras * 60 * 60 * 1000;   // intervalo em ms
+    const limiteMs   = 24 * 60 * 60 * 1000;                // 24h em ms
 
     let i = 1;
 
     while (true) {
-        const elapsedMinutes = i * intervalMinutes;
+        const elapsedMs = i * intervalMs;
 
-        // Inclui exatamente 24h (fecha o ciclo no mesmo horário do dia seguinte)
-        if (elapsedMinutes > limiteMinutes) break;
+        // Inclui exatamente 24h (fecha o ciclo) — quebra apenas quando ultrapassa
+        if (elapsedMs > limiteMs) break;
 
-        const totalMins = (startMinutes + elapsedMinutes) % limiteMinutes;
-        const horas = Math.floor(totalMins / 60);
-        const minutos = totalMins % 60;
+        const doseDateTime = new Date(dataPrescricao.getTime() + elapsedMs);
 
-        const hh = horas.toString().padStart(2, '0');
-        const mm = minutos.toString().padStart(2, '0');
-        const timeStr = `${hh}:${mm}`;
-
-        // Evita duplicatas (frequências que não dividem 24 exatamente)
-        if (!seenHorarios.has(timeStr)) {
-            seenHorarios.add(timeStr);
-            horarios.push({ horario: timeStr, status_id: 1 });
-        }
+        horarios.push({
+            horario: formatarDateTimeMySQL(doseDateTime), // "YYYY-MM-DD HH:MM:SS"
+            status_id: 1  // pendente
+        });
 
         i++;
     }
 
     console.log(
-        `Horários gerados para freq=${frequenciaHoras}h` +
-        ` (início: ${dataPrescricao.toTimeString().slice(0, 5)}):`,
-        horarios.map(h => h.horario).join(', ')
+        `[gerarHorarios] freq=${frequenciaHoras}h | início=${formatarDateTimeMySQL(dataPrescricao)} | doses=${horarios.length}`,
+        '→', horarios.map(h => h.horario.slice(11, 16)).join(', ')
     );
 
     return horarios;
@@ -456,8 +534,7 @@ function gerarHorariosParaItem(dataPrescricao, frequenciaHoras) {
 function inserirPrescricaoComItensHorarios(paciente_id, usuario_id, observacao, itens, dataPrescricao, res) {
     console.log("Inserindo prescrição para paciente_id:", paciente_id);
 
-    // Formata para MySQL: YYYY-MM-DD HH:MM:SS
-    const dataFormatada = dataPrescricao.toISOString().slice(0, 19).replace('T', ' ');
+    const dataFormatada = formatarDateTimeMySQL(dataPrescricao);
 
     db.query(
         `INSERT INTO prescricoes (paciente_id, usuario_id, observacao, data_prescricao) 
@@ -523,7 +600,7 @@ function inserirItensEHorarios(prescricao_id, itens, dataPrescricao, res) {
                 const item_id = resultadoItem.insertId;
                 console.log(`Item ${idxItem} criado com ID: ${item_id}`);
 
-                // Gera os horários no backend com base em dataPrescricao + intervalo
+                // Gera os horários para este item usando o momento da prescrição
                 const horariosGerados = gerarHorariosParaItem(dataPrescricao, frequencia);
 
                 if (horariosGerados.length > 0) {

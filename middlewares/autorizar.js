@@ -16,6 +16,8 @@ function autorizar(...niveisPermitidos) {
             })
         }
 
+        req.usuario = usuario
+
         next()
 
     }
