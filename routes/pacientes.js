@@ -32,6 +32,31 @@ router.get(
     })
 
 //======================================
+//      PACIENTES - [ GET ] * COUNT
+//======================================
+
+router.get(
+    "/count",
+    autorizar("docente", "aluno", "admin"),
+    function (req, res) {
+        db.query(
+            `select status_paciente,
+             count(*) as total from pacientes
+              group by status_paciente`,
+
+            function (erro, resultado) {
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                res.json(resultado)
+            }
+        )
+    }
+)
+
+//======================================
 //         PACIENTES - [ POST ]
 //======================================
 

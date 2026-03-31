@@ -48,6 +48,37 @@ router.get('/',
 );
 
 //======================================
+//     RELATORIOS - [ GET ] * COUNT
+//======================================
+
+router.get(
+    "/count",
+    autorizar("docente", "admin", "aluno"),
+    (req, res) => {
+
+        if (!req.session.usuario) {
+            return res.status(401).json({ erro: "Não autenticado" });
+        }
+
+        const usuario_id = req.session.usuario.id;
+
+        db.query(
+            `SELECT COUNT(*) AS total FROM relatorios WHERE usuario_id = ?`,
+            [usuario_id],
+            (erro, resultado) => {
+
+                if (erro) {
+                    console.error(erro);
+                    return res.status(500).json({ erro: "Erro ao contar relatórios" });
+                }
+
+                res.json(resultado[0]);
+            }
+        );
+    }
+);
+
+//======================================
 //         RELATORIOS - [ POST ]
 //======================================
 

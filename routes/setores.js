@@ -66,6 +66,50 @@ router.post(
     })
 
 //======================================
+//         SETORES - [ PUT:id ]
+//======================================
+
+router.put(
+    "/:id",
+    autorizar("docente", "admin"),
+    function (req, res) {
+
+        const { id } = req.params
+        const { nome_setor } = req.body
+
+        if (!nome_setor) {
+            return res.status(400).json({
+                erro: "Nome do setor é obrigatório"
+            })
+        }
+
+        db.query(
+            `UPDATE setores 
+             SET nome_setor = ?
+             WHERE id = ?`,
+            [nome_setor, id],
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                if (resultado.affectedRows === 0) {
+                    return res.status(404).json({
+                        erro: "Setor não encontrado"
+                    })
+                }
+
+                res.json({
+                    mensagem: "Setor atualizado com sucesso"
+                })
+            }
+        )
+    }
+)
+
+//======================================
 //         SETORES - [ DELETE:id ]
 //======================================
 

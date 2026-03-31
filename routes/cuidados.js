@@ -63,6 +63,50 @@ router.post(
     })
 
 //======================================
+//         CUIDADOS - [ PUT:id ]
+//======================================
+
+router.put(
+    "/:id",
+    autorizar("admin", "docente"),
+    function (req, res) {
+
+        const { id } = req.params
+        const { tipo_cuidado } = req.body
+
+        if (!tipo_cuidado) {
+            return res.status(400).json({
+                erro: "O campo tipo_cuidado é obrigatório"
+            })
+        }
+
+        db.query(
+            `UPDATE cuidados 
+             SET tipo_cuidado = ?
+             WHERE id = ?`,
+            [tipo_cuidado, id],
+            function (erro, resultado) {
+
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                if (resultado.affectedRows === 0) {
+                    return res.status(404).json({
+                        erro: "Cuidado não encontrado"
+                    })
+                }
+
+                res.json({
+                    mensagem: "Cuidado atualizado com sucesso"
+                })
+            }
+        )
+    }
+)
+
+//======================================
 //         CUIDADOS - [ DELETE:id ]
 //======================================
 

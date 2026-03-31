@@ -101,6 +101,28 @@ router.get(
 );
 
 //======================================
+//     PRESCRICOES - [ GET ] * COUNT
+//======================================
+
+router.get(
+    "/count",
+    autorizar("docente", "aluno", "admin"),
+    function (req, res) {
+        db.query(
+            `SELECT COUNT(*) AS total FROM prescricoes`,
+            function (erro, resultado) {
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                res.json(resultado[0])
+            }
+        )
+    }
+)
+
+//======================================
 //      PRESCRICOES - [ POST ]
 //======================================
 
@@ -503,7 +525,7 @@ function gerarHorariosParaItem(dataPrescricao, frequenciaHoras) {
     const horarios = [];
 
     const intervalMs = frequenciaHoras * 60 * 60 * 1000;   // intervalo em ms
-    const limiteMs   = 24 * 60 * 60 * 1000;                // 24h em ms
+    const limiteMs = 24 * 60 * 60 * 1000;                // 24h em ms
 
     let i = 1;
 

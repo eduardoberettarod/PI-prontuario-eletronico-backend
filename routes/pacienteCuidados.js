@@ -27,6 +27,28 @@ router.post(
     })
 
 //======================================
+// PACIENTES CUIDADOS - [ GET ] * COUNT
+//======================================
+
+router.get(
+    "/count",
+    autorizar("docente", "aluno", "admin"),
+    function (req, res) {
+        db.query(
+            `SELECT COUNT(*) AS total FROM paciente_cuidados`,
+            function (erro, resultado) {
+                if (erro) {
+                    console.log(erro)
+                    return res.status(500).json(erro)
+                }
+
+                res.json(resultado[0])
+            }
+        )
+    }
+)
+
+//======================================
 //    PACIENTES CUIDADOS - [ GET/:id ]
 //======================================
 
