@@ -9,7 +9,7 @@ const db = require('../conexao')
 
 router.get(
     "/",
-    autorizar("docente", "admin"),
+    autorizar("docente", "admin", "aluno"),
     function (req, res) {
 
         db.query(
