@@ -82,6 +82,9 @@ app.use('/relatorios', relatoriosRoutes)
 const prescricoesRoutes = require('./routes/prescricoes')
 app.use('/prescricoes', prescricoesRoutes)
 
+const testeRoutes = require('./routes/teste')
+app.use('/teste', testeRoutes)
+
 //=============================
 //           TESTE
 //=============================
