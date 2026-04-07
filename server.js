@@ -18,20 +18,12 @@ app.use(express.json())
 //=============================
 
 const session = require('express-session');
-const MySQLStore = require('express-mysql-session')(session);
 
-const sessionStore = new MySQLStore({
-    host: process.env.HOST,
-    user: process.env.USER,
-    password: process.env.PASSWORD,
-    database: process.env.NOME_BANCO
-});
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    store: sessionStore,
     cookie: { maxAge: 1000 * 60 * 60 * 2 }
 }));
 
