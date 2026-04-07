@@ -82,27 +82,22 @@ router.get(
 //         RELATORIOS - [ POST ]
 //======================================
 
-router.post('/',
-    autorizar("docente", "admin", "aluno"),
-    async (req, res) => {
-        const { paciente_id, titulo, conteudo } = req.body;
+router.post('/', autorizar("docente", "admin", "aluno"), function (req, res) {
+    const { paciente_id, titulo, conteudo } = req.body;
+    const usuario_id = req.session.usuario.id;
 
-        const usuario_id = req.session.usuario.id;
-
-        try {
-            await db.query(
-                `INSERT INTO relatorios (paciente_id, usuario_id, titulo, conteudo)
-             VALUES (?, ?, ?, ?)`,
-                [paciente_id, usuario_id, titulo, conteudo]
-            );
-
+    db.query(
+        `INSERT INTO relatorios (paciente_id, usuario_id, titulo, conteudo) VALUES (?, ?, ?, ?)`,
+        [paciente_id, usuario_id, titulo, conteudo],
+        function (erro, resultado) {
+            if (erro) {
+                console.error(erro);
+                return res.status(500).json({ erro: 'Erro ao criar relatório' });
+            }
             res.status(201).json({ msg: 'Relatório criado com sucesso' });
-
-        } catch (erro) {
-            console.error(erro);
-            res.status(500).json({ erro: 'Erro ao criar relatório' });
         }
-    });
+    );
+});
 
 //======================================
 //      RELATORIOS - [ DELETE/:id ]

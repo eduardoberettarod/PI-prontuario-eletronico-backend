@@ -18,15 +18,22 @@ app.use(express.json())
 //=============================
 
 const session = require('express-session');
+const MySQLStore = require('express-mysql-session')(session);
+
+const sessionStore = new MySQLStore({
+    host: process.env.HOST,
+    user: process.env.USER,
+    password: process.env.PASSWORD,
+    database: process.env.NOME_BANCO
+});
 
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    cookie: {
-        maxAge: 1000 * 60 * 60 * 2
-    }
-}))
+    store: sessionStore,
+    cookie: { maxAge: 1000 * 60 * 60 * 2 }
+}));
 
 //=============================
 //          CORS
@@ -97,6 +104,8 @@ app.get('/', function (req, res) {
 //          SERVER
 //=============================
 
-app.listen(process.env.PORTA, () => {
-    console.log("Servidor rodando na porta " + process.env.PORTA)
+const PORTA = process.env.PORT || process.env.PORTA || 3000
+
+app.listen(PORTA, () => {
+    console.log("Servidor rodando na porta " + PORTA)
 })
