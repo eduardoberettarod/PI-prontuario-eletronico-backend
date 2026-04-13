@@ -202,6 +202,18 @@ git clone https://github.com/eduardoberettarod/PI-prontuario-eletronico.git
 | GET | `/relatorios` | Gerar relatórios |
 | GET/POST | `/paciente-cuidados` | Relações paciente-cuidados |
 
+---
+
+## 👤 Conta de Teste
+
+Para testar o sistema, utilize as seguintes credenciais:
+
+| Campo | Valor |
+|-------|-------|
+| **Email** | `teste.docente@demo.com` |
+| **Senha** | `senha123` |
+
+> **Nota**: Esta conta de teste está disponível no banco de dados após a execução do schema de documentação.
 
 ---
 
