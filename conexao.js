@@ -2,11 +2,11 @@ let mysql = require('mysql')
 
 let conexao = mysql.createConnection({
     host: process.env.HOST,
-    port: process.env.PORTA || 4000,                    
+    port: process.env.PORTA || 4000,
     user: process.env.USER,
     password: process.env.PASSWORD,
     database: process.env.NOME_BANCO,
-    ssl: { rejectUnauthorized: false } 
+    ssl: { rejectUnauthorized: false }
 })
 
 function conectar() {
@@ -20,15 +20,15 @@ function conectar() {
     })
 }
 
-conexao.on('error', function(err) {
+conexao.on('error', function (err) {
     console.error("Erro de conexão detectado:", err.message);
-    if(err.code === 'PROTOCOL_CONNECTION_LOST') {
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
         conectar();
     }
-    if(err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+    if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
         conectar();
     }
-    if(err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
+    if (err.code === 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR') {
         conectar();
     }
 });
