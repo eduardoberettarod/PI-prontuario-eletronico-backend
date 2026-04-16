@@ -1,11 +1,11 @@
 let mysql = require('mysql')
 let conexao = mysql.createConnection({
     host: process.env.HOST,
-    port: 4000,                    
+    port: process.env.PORTA || 4000,                    
     user: process.env.USER,
     password: process.env.PASSWORD,
     database: process.env.NOME_BANCO,
-    ssl: { rejectUnauthorized: true } 
+    ssl: { rejectUnauthorized: false } 
 })
 
 conexao.connect(function (erro) {

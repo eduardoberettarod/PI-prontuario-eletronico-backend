@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "TiDB": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "pytidb[mcp]", "tidb-mcp-server"],
+      "env": {
+        "TIDB_HOST": "gateway01.us-west-2.prod.aws.tidbcloud.com",
+        "TIDB_PORT": "4000",
+        "TIDB_USERNAME": "3UdFHf8o9vzEEtV.root",
+        "TIDB_PASSWORD": "<PASSWORD>",
+        "TIDB_DATABASE": "bd_prontuario_eletronico"
+      }
+    }
+  }
+}

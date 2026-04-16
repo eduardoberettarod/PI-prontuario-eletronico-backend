@@ -96,4 +96,12 @@ app.get('/', function (req, res) {
 //       EXPORT - VERCEL
 //=============================
 
+const PORT = process.env.PORT || 3001;
+
+if (!process.env.VERCEL) {
+    app.listen(PORT, () => {
+        console.log(`Servidor rodando na porta ${PORT}`);
+    });
+}
+
 module.exports = app;
