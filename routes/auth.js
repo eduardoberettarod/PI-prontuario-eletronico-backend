@@ -1,5 +1,6 @@
 const express = require('express')
 const router = express.Router()
+const jwt = require('jsonwebtoken')
 
 const db = require('../conexao')
 const bcrypt = require('bcrypt')
@@ -49,8 +50,8 @@ router.post("/login", function (req, res) {
                 })
             }
 
-            // SALVA NA SESSION
-            req.session.usuario = {
+            // GERA JWT TOKEN
+            const usuarioData = {
                 id: usuario.id,
                 primeiro_nome: usuario.primeiro_nome,
                 sobrenome: usuario.sobrenome,
@@ -58,9 +59,12 @@ router.post("/login", function (req, res) {
                 nivel_acesso: usuario.nivel_acesso
             }
 
+            const token = jwt.sign(usuarioData, process.env.SESSION_SECRET, { expiresIn: '7d' })
+
             res.json({
                 mensagem: "Login realizado com sucesso",
-                usuario: req.session.usuario
+                usuario: usuarioData,
+                token: token
             })
 
         }
@@ -74,13 +78,22 @@ router.post("/login", function (req, res) {
 
 router.get("/me", function (req, res) {
 
-    if (!req.session.usuario) {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
         return res.status(401).json({
             erro: "Usuário não autenticado"
         })
     }
 
-    res.json(req.session.usuario)
+    try {
+        const usuarioData = jwt.verify(token, process.env.SESSION_SECRET)
+        res.json(usuarioData)
+    } catch (erro) {
+        return res.status(401).json({
+            erro: "Token inválido ou expirado"
+        })
+    }
 
 })
 
@@ -90,18 +103,9 @@ router.get("/me", function (req, res) {
 
 router.post("/logout", function (req, res) {
 
-    req.session.destroy(function (erro) {
-
-        if (erro) {
-            return res.status(500).json({
-                erro: "Erro ao fazer logout"
-            })
-        }
-
-        res.json({
-            mensagem: "Logout realizado com sucesso"
-        })
-
+    // JWT é stateless, logout é apenas no frontend (remover token)
+    res.json({
+        mensagem: "Logout realizado com sucesso"
     })
 
 })
