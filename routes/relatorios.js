@@ -11,11 +11,7 @@ router.get('/',
     autorizar("docente", "admin", "aluno"),
     (req, res) => {
 
-        if (!req.session.usuario) {
-            return res.status(401).json({ erro: "Não autenticado" });
-        }
-
-        const usuario_id = req.session.usuario.id;
+        const usuario_id = req.usuario.id;
 
         db.query(`
             SELECT 
@@ -56,11 +52,7 @@ router.get(
     autorizar("docente", "admin", "aluno"),
     (req, res) => {
 
-        if (!req.session.usuario) {
-            return res.status(401).json({ erro: "Não autenticado" });
-        }
-
-        const usuario_id = req.session.usuario.id;
+        const usuario_id = req.usuario.id;
 
         db.query(
             `SELECT COUNT(*) AS total FROM relatorios WHERE usuario_id = ?`,
@@ -84,7 +76,7 @@ router.get(
 
 router.post('/', autorizar("docente", "admin", "aluno"), function (req, res) {
     const { paciente_id, titulo, conteudo } = req.body;
-    const usuario_id = req.session.usuario.id;
+    const usuario_id = req.usuario.id;
 
     db.query(
         `INSERT INTO relatorios (paciente_id, usuario_id, titulo, conteudo) VALUES (?, ?, ?, ?)`,

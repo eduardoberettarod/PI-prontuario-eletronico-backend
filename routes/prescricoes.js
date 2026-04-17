@@ -83,9 +83,6 @@ router.get(
                     }
 
                     if (item && row.horario_id) {
-                        // Serializa o DATETIME de forma segura (sem conversão de fuso).
-                        // O driver mysql pode retornar Date ou string dependendo da versão.
-                        // Sempre enviamos uma string "YYYY-MM-DD HH:MM:SS" ao frontend.
                         item.horarios.push({
                             id: row.horario_id,
                             horario: formatarDateTimeParaResposta(row.horario),
@@ -131,7 +128,7 @@ router.post(
     autorizar("aluno", "docente", "admin"),
     function (req, res) {
         const { paciente_id, observacao, itens } = req.body;
-        const usuario_id = req.session.usuario?.id;
+        const usuario_id = req.usuario?.id;
 
         console.log("POST /prescricoes:", {
             paciente_id,
@@ -163,8 +160,6 @@ router.post(
         }
 
         // ========== VALIDAÇÕES DE ITENS ==========
-        // Horários NÃO são enviados pelo frontend —
-        // são gerados no backend com base em data_prescricao + frequência (intervalo em horas).
 
         for (let i = 0; i < itens.length; i++) {
             const item = itens[i];
@@ -204,7 +199,6 @@ router.post(
                 return res.status(400).json({ erro: `Medicamento ${idx}: frequência obrigatória` });
             }
 
-            // frequencia = intervalo em horas (1 = a cada 1h, 4 = a cada 4h, etc.)
             const freq = parseInt(item.frequencia);
             if (isNaN(freq) || freq <= 0 || freq > 24) {
                 return res.status(400).json({
@@ -247,9 +241,6 @@ router.post(
                         return res.status(400).json({ erro: "Um ou mais medicamentos não foram encontrados" });
                     }
 
-                    // Captura o momento exato no Node.js —
-                    // este objeto Date é usado tanto no INSERT da prescrição
-                    // quanto como ponto de partida para a geração dos horários.
                     const dataPrescricao = new Date();
 
                     inserirPrescricaoComItensHorarios(
@@ -276,7 +267,6 @@ router.put(
             return res.status(400).json({ erro: "ID do horário inválido" });
         }
 
-        // status válidos: 1=pendente, 2=finalizado, 3=nao_feito, 4=negado_paciente
         const statusValidos = [1, 2, 3, 4];
         const statusIdParsed = parseInt(status_id);
 
@@ -329,7 +319,6 @@ router.put(
             return res.status(400).json({ erro: "Observação muito longa (máx 500 caracteres)" });
         }
 
-        // Verificar se a prescrição existe
         db.query(
             "SELECT id FROM prescricoes WHERE id = ?",
             [prescricao_id],
@@ -389,8 +378,6 @@ router.delete(
                     return res.status(404).json({ erro: "Prescrição não encontrada" });
                 }
 
-                // horarios_prescricao são removidos automaticamente via ON DELETE CASCADE
-                // (FK: horarios_prescricao_ibfk_1 → itens_prescricao ON DELETE CASCADE)
                 db.query(
                     "DELETE FROM itens_prescricao WHERE prescricao_id = ?",
                     [prescricao_id],
@@ -472,9 +459,6 @@ function validarMedicamentosExistem(itens, callback) {
     });
 }
 
-// ─── Formatação de datetime para MySQL (usa horário LOCAL do servidor) ────────
-// Nunca usa toISOString() — esse método converte para UTC e quebraria o horário
-// em servidores fora de UTC-0.
 function formatarDateTimeMySQL(date) {
     const y = date.getFullYear();
     const mo = String(date.getMonth() + 1).padStart(2, '0');
@@ -485,61 +469,30 @@ function formatarDateTimeMySQL(date) {
     return `${y}-${mo}-${d} ${h}:${mi}:${s}`;
 }
 
-// ─── Serialização do DATETIME para o frontend ─────────────────────────────────
-// O driver mysql pode retornar DATETIME como Date ou string.
-// Sempre enviamos "YYYY-MM-DD HH:MM:SS" (sem fuso) para o frontend,
-// que exibe usando suas próprias funções de formatação.
 function formatarDateTimeParaResposta(dt) {
     if (!dt) return null;
     if (dt instanceof Date) return formatarDateTimeMySQL(dt);
-    return String(dt); // já é string
+    return String(dt);
 }
-
-// ─── Geração de horários (backend) ────────────────────────────────────────────
-//
-// Regra exata:
-//   dataPrescricao  = momento da criação (ex: 21:00:00 do dia 28/03)
-//   frequenciaHoras = intervalo em horas (ex: 1 = a cada 1h)
-//
-//   1ª dose  = dataPrescricao + 1 × frequenciaHoras  (ex: 22:00 dia 28)
-//   2ª dose  = dataPrescricao + 2 × frequenciaHoras  (ex: 23:00 dia 28)
-//   ...
-//   Última   = dataPrescricao + 24h exatos            (ex: 21:00 dia 29)
-//
-// Quantidade de doses = 24 / frequenciaHoras
-//   1/1h  → 24 doses
-//   2/2h  → 12 doses
-//   3/3h  →  8 doses
-//   4/4h  →  6 doses
-//   6/6h  →  4 doses
-//   8/8h  →  3 doses
-//  12/12h →  2 doses
-//  24/24h →  1 dose
-//
-// Para frequências que não dividem 24 exatamente (5, 7, etc.),
-// o loop inclui todas as doses dentro do intervalo [+freq, +24h].
-//
-// A virada de meia-noite é tratada automaticamente via aritmética de Date.
 
 function gerarHorariosParaItem(dataPrescricao, frequenciaHoras) {
     const horarios = [];
 
-    const intervalMs = frequenciaHoras * 60 * 60 * 1000;   // intervalo em ms
-    const limiteMs = 24 * 60 * 60 * 1000;                // 24h em ms
+    const intervalMs = frequenciaHoras * 60 * 60 * 1000;
+    const limiteMs = 24 * 60 * 60 * 1000;
 
     let i = 1;
 
     while (true) {
         const elapsedMs = i * intervalMs;
 
-        // Inclui exatamente 24h (fecha o ciclo) — quebra apenas quando ultrapassa
         if (elapsedMs > limiteMs) break;
 
         const doseDateTime = new Date(dataPrescricao.getTime() + elapsedMs);
 
         horarios.push({
-            horario: formatarDateTimeMySQL(doseDateTime), // "YYYY-MM-DD HH:MM:SS"
-            status_id: 1  // pendente
+            horario: formatarDateTimeMySQL(doseDateTime),
+            status_id: 1
         });
 
         i++;
@@ -622,7 +575,6 @@ function inserirItensEHorarios(prescricao_id, itens, dataPrescricao, res) {
                 const item_id = resultadoItem.insertId;
                 console.log(`Item ${idxItem} criado com ID: ${item_id}`);
 
-                // Gera os horários para este item usando o momento da prescrição
                 const horariosGerados = gerarHorariosParaItem(dataPrescricao, frequencia);
 
                 if (horariosGerados.length > 0) {
